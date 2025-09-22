@@ -165,4 +165,5 @@ function updateObject(db, storeName, object) {
         request.onerror = () => reject("更新对象失败");
     });
 }
+ 
 
