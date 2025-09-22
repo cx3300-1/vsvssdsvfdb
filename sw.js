@@ -137,26 +137,39 @@ function showNotification(chat, messageContent) {
     return self.registration.showNotification(title, options);
 }
 
-// 6. 监听通知点击事件
+// 【最终修复版】请用这整块代码替换您旧的 notificationclick 监听器
+
 self.addEventListener('notificationclick', event => {
-    event.notification.close(); // 关闭通知
+    // 1. (保持不变) 关闭通知，获取聊天ID
+    event.notification.close(); 
     const chatId = event.notification.data.chatId;
 
-    // 这段代码会找到所有当前PWA的窗口，并聚焦到第一个
+    // 2. (核心修改) 构建正确的PWA主页面URL
+    //    我们使用您已定义的 REPO_NAME 常量和 manifest.json 中的 start_url
+    const appUrl = `${self.location.origin}${REPO_NAME}index.html`;
+
+    // 3. (核心修改) 寻找并聚焦已打开的PWA窗口
     event.waitUntil(
-        clients.matchAll({ type: 'window' }).then(clientList => {
-            for (let i = 0; i < clientList.length; i++) {
-                const client = clientList[i];
-                // 如果PWA窗口已打开，则直接聚焦并发送消息
-                if (client.url === self.location.origin + '/手18.html' && 'focus' in client) {
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+            // 遍历所有已打开的同源窗口
+            for (const client of clientList) {
+                // 关键判断：只要URL包含应用的基础路径，就认为是我们的PWA窗口
+                // 这比严格的 `===` 更健壮，能适应不同的路由情况
+                if (client.url.startsWith(appUrl) && 'focus' in client) {
+                    console.log('找到了已打开的PWA窗口，正在聚焦...');
+                    // 找到后，向其发送消息，告诉它要打开哪个聊天
                     client.postMessage({ type: 'OPEN_CHAT', chatId: chatId });
+                    // 然后将其激活到前台
                     return client.focus();
                 }
             }
-            // 如果PWA窗口未打开，则打开一个新的
+
+            // 4. (核心修改) 如果没有找到已打开的窗口，则打开一个新的
             if (clients.openWindow) {
-                // 将 chatId 作为 URL 参数传递
-                return clients.openWindow(`/手18.html?chatId=${chatId}`);
+                console.log('没有找到已打开的PWA窗口，正在打开一个新的...');
+                // 关键：打开一个带有正确查询参数的新窗口
+                // 这个URL会确保应用在新打开的独立窗口中加载
+                return clients.openWindow(`${appUrl}?chatId=${chatId}`);
             }
         })
     );
@@ -201,6 +214,7 @@ function updateObject(db, storeName, object) {
     });
 }
  
+
 
 
 
