@@ -17695,11 +17695,70 @@ async function deleteTrack(index) { if (index < 0 || index >= musicState.playlis
                 
                 // ▲▲▲ 新函数粘贴结束 ▲▲▲
         
-
+        // ▼▼▼ 将这两个新函数粘贴到你的JS功能函数定义区 ▼▼▼
+        function startBackgroundSimulation() {
+            if (simulationIntervalId) return;
+            const intervalSeconds = state.globalSettings.backgroundActivityInterval || 60;
+            // 将旧的固定间隔 45000 替换为动态获取
+            simulationIntervalId = setInterval(runBackgroundSimulationTick, intervalSeconds * 1000); 
+        }
         
-
+        function stopBackgroundSimulation() {
+            if (simulationIntervalId) {
+                clearInterval(simulationIntervalId);
+                simulationIntervalId = null;
+            }
+        }
+        // ▲▲▲ 粘贴结束 ▲▲▲
         
-
+        // ▼▼▼ 【最终修复版】请用这个全新的函数，完整替换旧的 runBackgroundSimulationTick ▼▼▼
+        /**
+         * 这是模拟器的“心跳”，每次定时器触发时运行
+         */
+        function runBackgroundSimulationTick() {
+            console.log("模拟器心跳 Tick...");
+            if (!state.globalSettings.enableBackgroundActivity) {
+                stopBackgroundSimulation();
+                return;
+            }
+        
+            // --- 1. 处理所有单聊 ---
+            const allSingleChats = Object.values(state.chats).filter(chat => !chat.isGroup);
+            allSingleChats.forEach(chat => {
+                // 【【【核心修改：已删除对 lastMessage.role === 'user' 的检查】】】
+                // 现在AI不再关心最后一条消息是谁发的了！
+        
+                // 处理【被用户拉黑】的角色
+                if (chat.relationship?.status === 'blocked_by_user') {
+                    const blockedTimestamp = chat.relationship.blockedTimestamp;
+                    if (!blockedTimestamp) return;
+                    const blockedDuration = Date.now() - blockedTimestamp;
+                    const cooldownMilliseconds = (state.globalSettings.blockCooldownHours || 1) * 60 * 60 * 1000;
+                    if (blockedDuration > cooldownMilliseconds) {
+                        chat.relationship.status = 'pending_system_reflection';
+                        triggerAiFriendApplication(chat.id);
+                    }
+                }
+                // 处理【好友关系】的正常后台活动
+                else if (chat.relationship?.status === 'friend' && chat.id !== state.activeChatId) {
+                    if (Math.random() < 0.20) { // 单聊保持20%的几率
+                        console.log(`角色 "${chat.name}" 被唤醒，准备独立行动...`);
+                        triggerInactiveAiAction(chat.id);
+                    }
+                }
+            });
+        
+            // --- 2. 【核心新增】处理所有群聊 ---
+            const allGroupChats = Object.values(state.chats).filter(chat => chat.isGroup);
+            allGroupChats.forEach(chat => {
+                // 确保不在当前打开的聊天窗口，且通过随机概率检查
+                if (chat.id !== state.activeChatId && Math.random() < 0.10) { // 群聊几率可以设低一些，比如10%，避免太吵
+                    console.log(`群聊 "${chat.name}" 被唤醒，准备独立行动...`);
+                    triggerGroupAiAction(chat.id); // 调用我们为群聊新建的函数！
+                }
+            });
+        }
+        // ▲▲▲ 替换结束 ▲▲▲
         
         // ▼▼▼ 【最终修复版】请用这个全新的函数，完整替换旧的 triggerInactiveAiAction ▼▼▼
         /**
@@ -30020,14 +30079,35 @@ function setupCharPlayerControls() {
     });
 }
 /* ▲▲▲ JS代码替换结束 ▲▲▲ */
+    document.addEventListener('DOMContentLoaded', () => {
 
+        // ▼▼▼ 【核心改造】在这里粘贴全新的Service Worker注册代码 ▼▼▼
+        
+        // 1. 检查浏览器是否支持 Service Worker 和 Push API
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            console.log('Service Worker 和 Push API 支持！');
+
+            navigator.serviceWorker.register('sw.js')
+            .then(function(swReg) {
+                console.log('Service Worker 注册成功:', swReg);
+
+                // 在这里可以进一步处理推送订阅的逻辑
+                // 例如，当用户允许通知时，获取订阅信息并发送到你的服务器
+                // (这部分逻辑比较复杂，需要后端配合，此处为简化示例)
+
+            }).catch(function(error) {
+                console.error('Service Worker 注册失败:', error);
+            });
+        } else {
+            console.warn('此浏览器不支持 Service Worker 或 Push API。后台功能将受限。');
+        }
+
+        // ▲▲▲ 改造代码粘贴结束 ▲▲▲
 
               // ===================================================================
                 // 4. 初始化函数 init()
                 // ===================================================================
                 async function init() {
-
-
 setupCharPlayerControls();
     // ▼▼▼ 【核心修复】将内部函数暴露到全局，以便HTML中的 onclick 可以调用它们 ▼▼▼
     window.showScreen = showScreen;
@@ -30102,7 +30182,7 @@ window.switchToCharHomeScreen = switchToCharHomeScreen;
                     }
         
                     updateClock();
-                    
+                    setInterval(updateClock, 1000 * 30);
                     applyGlobalWallpaper();
                     initBatteryManager(); 
         
@@ -34027,47 +34107,13 @@ document.getElementById('regenerate-char-amap-btn').addEventListener('click', ha
 document.getElementById('regenerate-char-usage-btn').addEventListener('click', handleGenerateAppUsage);
         document.getElementById('regenerate-char-music-btn').addEventListener('click', handleGenerateSimulatedMusic);
         document.getElementById('close-char-music-player-btn').addEventListener('click', closeCharMusicPlayer);
-// ... init() 函数的其他代码 ...
 
-        // ▼▼▼ 【全新】这是注册 Service Worker 并启动后台同步的核心代码 ▼▼▼
-        async function registerServiceWorkerAndSync() {
-            // 检查浏览器是否支持 Service Worker 和后台同步
-            if ('serviceWorker' in navigator && 'PeriodicSyncManager' in window) {
-                try {
-                    // 1. 注册我们创建的 sw.js 文件
-                    const registration = await navigator.serviceWorker.register('sw.js');
-                    console.log('Service Worker 注册成功:', registration);
 
-                    // 2. 请求后台同步的权限
-                    const status = await navigator.permissions.query({name: 'periodic-background-sync'});
-                    if (status.state === 'granted') {
-                        // 3. 如果已获取权限，就注册一个名为 'run-background-simulation' 的同步任务
-                        await registration.periodicSync.register('run-background-simulation', {
-                            // 设置最小间隔为 4 小时 (浏览器会根据情况调整，但不会比这个更频繁)
-                            minInterval: 4 * 60 * 60 * 1000, 
-                        });
-                        console.log('后台周期性同步任务已成功注册！');
-                    } else {
-                        console.warn('后台周期性同步权限未被授予。PWA将无法在后台运行。');
-                    }
-                } catch (error) {
-                    console.error('Service Worker 或后台同步注册失败:', error);
+                    showScreen('home-screen');
                 }
-            } else {
-                console.warn('您的浏览器不支持 Service Worker 或后台周期性同步，PWA将无法在后台运行。');
-            }
-        }
         
-        // 在应用初始化时调用这个新函数
-        registerServiceWorkerAndSync();
-        // ▲▲▲ 新增代码粘贴结束 ▲▲▲
-
-        showScreen('home-screen');
-    }
-
-    init();
-});
-
+                init();
+            });
         
     </script>
     <div id="qzone-sticker-panel">
@@ -34249,6 +34295,7 @@ document.getElementById('regenerate-char-usage-btn').addEventListener('click', h
 <audio id="char-audio-player" preload="auto"></audio>
 </body>
 </html>
+
 
 
 
