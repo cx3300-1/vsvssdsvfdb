@@ -8847,6 +8847,19 @@
                     </label>
                     <input type="number" id="background-interval-input" min="30" value="60" style="width: 80px; text-align: center;">
                 </div>
+<hr style="margin: 30px 0; opacity: 0.3;">
+<h3 style="border-bottom: 1px solid #eee; padding-bottom: 10px;">通知与后台设置</h3>
+
+<div class="form-group">
+    <label>
+        消息通知
+        <p style="font-size: 12px; font-weight: normal; color: #999; margin-top: 5px;">
+            开启后，当AI角色在后台独立行动时，您会收到系统通知。
+            <br><strong>(iOS用户必须先将应用“添加到主屏幕”)</strong>
+        </p>
+    </label>
+    <button class="form-button" id="enable-notifications-btn">开启/检查通知权限</button>
+</div>
                 <div class="form-group" style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
                     <label for="block-cooldown-input" style="margin-bottom: 0;"> AI被拉黑后冷静期 (小时) <p style="font-size: 12px; font-weight: normal; color: #999; margin-top: 5px;"> 被拉黑超过这个时间后，AI才有几率重新申请好友。 </p>
                     </label>
@@ -30079,56 +30092,75 @@ function setupCharPlayerControls() {
     });
 }
 /* ▲▲▲ JS代码替换结束 ▲▲▲ */
-// 在您的主 <script> 标签内添加
+// ▼▼▼ 【请用这整块全新的代码】替换旧的 registerServiceWorkerAndPermissions 和 registerPeriodicSync 函数 ▼▼▼
 
-async function registerServiceWorkerAndPermissions() {
-// 在手18.html 的 <script> 中
-async function registerPeriodicSync(registration) {
-    // 检查浏览器是否支持这个API
-    if ('periodicSync' in registration) {
-        try {
-            // 请求权限
-            const status = await navigator.permissions.query({
-                name: 'periodic-background-sync',
-            });
-
-            if (status.state === 'granted') {
-                // 注册一个名为 'run-ai-simulation' 的任务
-                // minInterval 是建议的最小间隔，浏览器会根据情况决定实际间隔（通常是数小时）
-                await registration.periodicSync.register('run-ai-simulation', {
-                    minInterval: 1 * 60 * 60 * 1000, // 例如：至少每 1 小时
-                });
-                console.log('周期性后台同步任务已注册。');
-            } else {
-                console.warn('用户拒绝了后台同步权限。');
-            }
-        } catch (error) {
-            console.error('注册周期性后台同步失败:', error);
-        }
-    } else {
-        console.log('此浏览器不支持周期性后台同步 API。');
-    }
-}
+/**
+ * 【V2.0 | 流程重构】这是一个新的、更清晰的函数，只负责注册 Service Worker。
+ * 这个操作是安全的，可以在页面加载时执行。
+ */
+async function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
         try {
             const registration = await navigator.serviceWorker.register('./sw.js');
             console.log('Service Worker 注册成功，范围:', registration.scope);
-
-            // 请求通知权限
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-                console.log('通知权限已获取。');
-                // 尝试注册周期性后台同步
-                await registerPeriodicSync(registration);
-            } else {
-                console.warn('用户拒绝了通知权限。');
-            }
-
+            return registration;
         } catch (error) {
             console.error('Service Worker 注册失败:', error);
+            return null;
         }
     }
+    return null;
 }
+
+/**
+ * 【V2.0 | 核心函数】当用户点击按钮时，执行这个函数来请求权限并注册后台任务。
+ */
+async function requestPermissionsAndRegisterTasks() {
+    // 确保 Service Worker 已经准备就绪
+    const registration = await navigator.serviceWorker.ready;
+    if (!registration) {
+        alert("Service Worker 未就绪，请稍后再试或刷新页面。");
+        return;
+    }
+
+    try {
+        // 1. 请求通知权限 (现在它是由用户点击触发的！)
+        const permission = await Notification.requestPermission();
+        
+        if (permission === 'granted') {
+            console.log('通知权限已获取。');
+            
+            // 2. 只有在获取到权限后，才继续注册周期性同步任务
+            if ('periodicSync' in registration) {
+                const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
+                if (status.state === 'granted') {
+                    // 注册任务
+                    await registration.periodicSync.register('run-ai-simulation', {
+                        minInterval: 1 * 60 * 60 * 1000, // 至少每1小时
+                    });
+                    console.log('周期性后台同步任务已注册。');
+                    alert('通知功能已成功开启！AI角色现在可以在后台给您发送消息了。');
+                } else {
+                    console.warn('用户拒绝了后台同步权限。');
+                    alert('通知权限已开启，但后台同步权限被拒绝。您可能无法接收到离线消息。');
+                }
+            } else {
+                console.log('此浏览器不支持周期性后台同步 API。');
+                alert('通知功能已开启！但您的浏览器不支持后台同步，可能无法接收到离线消息。');
+            }
+            
+        } else {
+            console.warn('用户拒绝了通知权限。');
+            alert('您已拒绝授权通知，将无法接收来自角色的离线消息。');
+        }
+
+    } catch (error) {
+        console.error('请求权限或注册任务时出错:', error);
+        alert(`操作失败: ${error.message}`);
+    }
+}
+
+// ▲▲▲ 代码替换结束 ▲▲▲
 
 
 
@@ -30136,7 +30168,8 @@ async function registerPeriodicSync(registration) {
                 // 4. 初始化函数 init()
                 // ===================================================================
                 async function init() {
-await registerServiceWorkerAndPermissions();
+await registerServiceWorker(); // Service Worker本身可以安全地在加载时注册
+document.getElementById('enable-notifications-btn').addEventListener('click', requestPermissionsAndRegisterTasks);
 // 在手18.html的init()函数中添加
 navigator.serviceWorker.addEventListener('message', event => {
     if (event.data && event.data.type === 'OPEN_CHAT') {
@@ -34342,6 +34375,7 @@ document.getElementById('regenerate-char-usage-btn').addEventListener('click', h
 <audio id="char-audio-player" preload="auto"></audio>
 </body>
 </html>
+
 
 
 
