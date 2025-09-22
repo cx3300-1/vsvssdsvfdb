@@ -30112,11 +30112,7 @@ async function registerServiceWorker() {
     return null;
 }
 
-/**
- * 【V2.0 | 核心函数】当用户点击按钮时，执行这个函数来请求权限并注册后台任务。
- */
 async function requestPermissionsAndRegisterTasks() {
-    // 确保 Service Worker 已经准备就绪
     const registration = await navigator.serviceWorker.ready;
     if (!registration) {
         alert("Service Worker 未就绪，请稍后再试或刷新页面。");
@@ -30124,29 +30120,29 @@ async function requestPermissionsAndRegisterTasks() {
     }
 
     try {
-        // 1. 请求通知权限 (现在它是由用户点击触发的！)
         const permission = await Notification.requestPermission();
         
         if (permission === 'granted') {
             console.log('通知权限已获取。');
             
-            // 2. 只有在获取到权限后，才继续注册周期性同步任务
+            // 核心修改：首先检查浏览器是否支持此功能
             if ('periodicSync' in registration) {
                 const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
                 if (status.state === 'granted') {
-                    // 注册任务
                     await registration.periodicSync.register('run-ai-simulation', {
-                        minInterval: 1 * 60 * 60 * 1000, // 至少每1小时
+                        minInterval: 1 * 60 * 60 * 1000, 
                     });
                     console.log('周期性后台同步任务已注册。');
-                    alert('通知功能已成功开启！AI角色现在可以在后台给您发送消息了。');
+                    alert('通知和后台任务均已成功开启！');
                 } else {
-                    console.warn('用户拒绝了后台同步权限。');
-                    alert('通知权限已开启，但后台同步权限被拒绝。您可能无法接收到离线消息。');
+                    // 浏览器支持，但用户未授权（通常是因为未安装PWA）
+                    console.warn('后台同步权限被拒绝或需要提示。');
+                    alert('通知权限已开启，但后台任务权限被拒绝。请确认您已通过浏览器菜单将本应用【安装到主屏幕或桌面】，然后再试。');
                 }
             } else {
+                // 浏览器根本不支持此功能（大概率是iOS/Safari）
                 console.log('此浏览器不支持周期性后台同步 API。');
-                alert('通知功能已开启！但您的浏览器不支持后台同步，可能无法接收到离线消息。');
+                alert('通知功能已开启！但您的设备不支持后台任务，AI角色将无法在离线时主动行动（这在iOS设备上是正常现象）。');
             }
             
         } else {
@@ -34375,6 +34371,7 @@ document.getElementById('regenerate-char-usage-btn').addEventListener('click', h
 <audio id="char-audio-player" preload="auto"></audio>
 </body>
 </html>
+
 
 
 
