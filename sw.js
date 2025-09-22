@@ -1,78 +1,38 @@
-// Service Worker 文件 (sw.js)
+// sw.js - Service Worker 脚本
 
-// 监听 periodicbackgroundsync 事件
-// 这是当浏览器决定唤醒你的 Service Worker 时触发的事件
-self.addEventListener('periodicsync', (event) => {
-  // 我们给这个同步任务起个名字叫 'run-background-simulation'
-  if (event.tag === 'run-background-simulation') {
-    // event.waitUntil() 告诉浏览器任务正在进行中，在任务完成前不要终止 Service Worker
-    event.waitUntil(runBackgroundSimulationTick());
-  }
+// 监听 'push' 事件。当你的应用收到推送通知时，这个事件会被触发。
+self.addEventListener('push', event => {
+  console.log('[Service Worker] 收到推送事件！');
+
+  // 在这里，你可以执行你原本希望在后台运行的任务。
+  // 例如，你可以模拟一个“角色行动”，然后决定是否要给用户发送一个通知。
+  
+  // 这是一个模拟的后台行动逻辑
+  const characterAction = () => {
+    // 假设这里有一些复杂的逻辑来决定角色要做什么
+    // ...
+    // 最终，我们决定给用户发一个通知
+    const title = 'EPhone - 你有新消息';
+    const options = {
+      body: '你的好友“李星辰”发布了一条新动态，快去看看吧！',
+      icon: 'https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1758510900942_qdqqd_djw0z2.jpeg', // 使用你的应用图标
+      badge: 'https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1758510900942_qdqqd_djw0z2.jpeg' // 通知栏小图标
+    };
+    
+    // self.registration.showNotification 会显示一个系统通知
+    event.waitUntil(self.registration.showNotification(title, options));
+  };
+
+  // 执行你的后台行动
+  characterAction();
 });
 
-// 这是一个简化版的后台行动函数
-// 注意：Service Worker 不能直接访问主页面的 DOM 或 Dexie.js 实例
-// 因此，我们需要在这里重新初始化数据库连接
-// 您需要将 Dexie.js 的库也引入到 Service Worker 中
-importScripts('https://unpkg.com/dexie/dist/dexie.js');
+// (可选) 监听通知点击事件
+self.addEventListener('notificationclick', event => {
+  event.notification.close(); // 关闭通知
+  // 当用户点击通知时，打开你的应用
+  event.waitUntil(
+    clients.openWindow('/') // '/' 代表你的应用根URL
+  );
+});
 
-async function runBackgroundSimulationTick() {
-    console.log("Service Worker 被唤醒，开始执行后台模拟心跳...");
-
-    // 在 Service Worker 中重新连接数据库
-    const db = new Dexie('GeminiChatDB');
-    // 定义与主页面完全相同的数据库结构
-    db.version(31).stores({ 
-        chats: '&id, isGroup, groupId, isPinned, memos, diary, appUsageLog',
-        apiConfig: '&id', 
-        globalSettings: '&id', 
-        userStickers: '&id, url, name, categoryId',
-        worldBooks: '&id, name, categoryId',
-        worldBookCategories: '++id, name',
-        musicLibrary: '&id', 
-        personaPresets: '&id',
-        qzoneSettings: '&id',
-        qzonePosts: '++id, timestamp', 
-        qzoneAlbums: '++id, name, createdAt',
-        qzonePhotos: '++id, albumId',
-        favorites: '++id, type, timestamp, originalTimestamp',
-        qzoneGroups: '++id, name',
-        memories: '++id, chatId, timestamp, type, targetDate',
-        callRecords: '++id, chatId, timestamp, customName',
-        shoppingProducts: '++id, name, description',
-        apiPresets: '++id, name',
-        renderingRules: '++id, name, chatId',
-        appearancePresets: '++id, name, type',
-        stickerCategories: '++id, name'
-    });
-
-    try {
-        const globalSettings = await db.globalSettings.get('main');
-        if (!globalSettings || !globalSettings.enableBackgroundActivity) {
-            console.log("后台活动总开关未开启，Service Worker 终止本次任务。");
-            return;
-        }
-
-        const allChats = await db.chats.toArray();
-        const singleChats = allChats.filter(chat => !chat.isGroup);
-
-        // 这里的后台行动逻辑可以保持不变
-        // 注意：在 Service Worker 中不能使用 alert 或 DOM 操作
-        // 您可以将需要通知用户的部分改为使用推送通知 (Push Notifications)
-        for (const chat of singleChats) {
-            if (chat.relationship?.status === 'blocked_by_user') {
-                // ... (省略好友申请逻辑，保持不变) ...
-            } else if (chat.relationship?.status === 'friend') {
-                 // 在这里执行您的后台行动决策，比如调用 triggerInactiveAiAction
-                 // 请注意：您需要将 triggerInactiveAiAction 及其依赖的所有函数
-                 // 也复制到这个 sw.js 文件中，并确保它们不操作DOM。
-                 console.log(`后台检查角色: ${chat.name}`);
-            }
-        }
-        
-        console.log("Service Worker 后台任务执行完毕。");
-
-    } catch (error) {
-        console.error("Service Worker 在执行后台任务时出错:", error);
-    }
-}
