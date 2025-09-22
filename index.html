@@ -54,7 +54,7 @@
         
         #phone-screen {
             width: 100%;
-            /* Use 100vh to ensure it fills the entire screen height */ 
+            /* Use 100vh to ensure it fills the entire screen height */
             height: 100vh; 
             position: relative;
             overflow: hidden;
@@ -30079,35 +30079,82 @@ function setupCharPlayerControls() {
     });
 }
 /* ▲▲▲ JS代码替换结束 ▲▲▲ */
-    document.addEventListener('DOMContentLoaded', () => {
+// 在您的主 <script> 标签内添加
 
-        // ▼▼▼ 【核心改造】在这里粘贴全新的Service Worker注册代码 ▼▼▼
-        
-        // 1. 检查浏览器是否支持 Service Worker 和 Push API
-        if ('serviceWorker' in navigator && 'PushManager' in window) {
-            console.log('Service Worker 和 Push API 支持！');
-
-            navigator.serviceWorker.register('sw.js')
-            .then(function(swReg) {
-                console.log('Service Worker 注册成功:', swReg);
-
-                // 在这里可以进一步处理推送订阅的逻辑
-                // 例如，当用户允许通知时，获取订阅信息并发送到你的服务器
-                // (这部分逻辑比较复杂，需要后端配合，此处为简化示例)
-
-            }).catch(function(error) {
-                console.error('Service Worker 注册失败:', error);
+async function registerServiceWorkerAndPermissions() {
+// 在手18.html 的 <script> 中
+async function registerPeriodicSync(registration) {
+    // 检查浏览器是否支持这个API
+    if ('periodicSync' in registration) {
+        try {
+            // 请求权限
+            const status = await navigator.permissions.query({
+                name: 'periodic-background-sync',
             });
-        } else {
-            console.warn('此浏览器不支持 Service Worker 或 Push API。后台功能将受限。');
-        }
 
-        // ▲▲▲ 改造代码粘贴结束 ▲▲▲
+            if (status.state === 'granted') {
+                // 注册一个名为 'run-ai-simulation' 的任务
+                // minInterval 是建议的最小间隔，浏览器会根据情况决定实际间隔（通常是数小时）
+                await registration.periodicSync.register('run-ai-simulation', {
+                    minInterval: 1 * 60 * 60 * 1000, // 例如：至少每 1 小时
+                });
+                console.log('周期性后台同步任务已注册。');
+            } else {
+                console.warn('用户拒绝了后台同步权限。');
+            }
+        } catch (error) {
+            console.error('注册周期性后台同步失败:', error);
+        }
+    } else {
+        console.log('此浏览器不支持周期性后台同步 API。');
+    }
+}
+    if ('serviceWorker' in navigator) {
+        try {
+            const registration = await navigator.serviceWorker.register('./sw.js');
+            console.log('Service Worker 注册成功，范围:', registration.scope);
+
+            // 请求通知权限
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                console.log('通知权限已获取。');
+                // 尝试注册周期性后台同步
+                await registerPeriodicSync(registration);
+            } else {
+                console.warn('用户拒绝了通知权限。');
+            }
+
+        } catch (error) {
+            console.error('Service Worker 注册失败:', error);
+        }
+    }
+}
+
+
 
               // ===================================================================
                 // 4. 初始化函数 init()
                 // ===================================================================
                 async function init() {
+await registerServiceWorkerAndPermissions();
+// 在手18.html的init()函数中添加
+navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data && event.data.type === 'OPEN_CHAT') {
+        const chatId = event.data.chatId;
+        console.log('从 Service Worker 收到指令，打开聊天:', chatId);
+        openChat(chatId); // 调用您现有的打开聊天函数
+    }
+});
+
+// 同时，处理通过 URL 参数传递的 chatId
+const urlParams = new URLSearchParams(window.location.search);
+const chatIdFromUrl = urlParams.get('chatId');
+if (chatIdFromUrl) {
+    // 使用 setTimeout 确保在所有数据加载完毕后再打开聊天
+    setTimeout(() => {
+        openChat(chatIdFromUrl);
+    }, 500);
+}
 setupCharPlayerControls();
     // ▼▼▼ 【核心修复】将内部函数暴露到全局，以便HTML中的 onclick 可以调用它们 ▼▼▼
     window.showScreen = showScreen;
@@ -34295,6 +34342,7 @@ document.getElementById('regenerate-char-usage-btn').addEventListener('click', h
 <audio id="char-audio-player" preload="auto"></audio>
 </body>
 </html>
+
 
 
 
