@@ -1,6 +1,6 @@
 
 // 【核心修改1】更新缓存版本号，强制浏览器更新Service Worker
-const CACHE_NAME = 'ephone-cache-v3'; 
+const CACHE_NAME = 'ephone-cache-v4'; 
 const REPO_NAME = '/vsvssdsvfdb/'; 
 
 // 核心文件列表保持不变
@@ -201,6 +201,7 @@ function updateObject(db, storeName, object) {
     });
 }
  
+
 
 
 
