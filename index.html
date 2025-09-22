@@ -30079,34 +30079,56 @@ function setupCharPlayerControls() {
     });
 }
 /* ▲▲▲ JS代码替换结束 ▲▲▲ */
-// ▼▼▼ 【全新】请用这个版本替换您现有的 registerServiceWorkerAndPermissions 函数 ▼▼▼
+// 在您的主 <script> 标签内添加
 
 async function registerServiceWorkerAndPermissions() {
+// 在手18.html 的 <script> 中
+async function registerPeriodicSync(registration) {
+    // 检查浏览器是否支持这个API
+    if ('periodicSync' in registration) {
+        try {
+            // 请求权限
+            const status = await navigator.permissions.query({
+                name: 'periodic-background-sync',
+            });
+
+            if (status.state === 'granted') {
+                // 注册一个名为 'run-ai-simulation' 的任务
+                // minInterval 是建议的最小间隔，浏览器会根据情况决定实际间隔（通常是数小时）
+                await registration.periodicSync.register('run-ai-simulation', {
+                    minInterval: 1 * 60 * 60 * 1000, // 例如：至少每 1 小时
+                });
+                console.log('周期性后台同步任务已注册。');
+            } else {
+                console.warn('用户拒绝了后台同步权限。');
+            }
+        } catch (error) {
+            console.error('注册周期性后台同步失败:', error);
+        }
+    } else {
+        console.log('此浏览器不支持周期性后台同步 API。');
+    }
+}
     if ('serviceWorker' in navigator) {
         try {
             const registration = await navigator.serviceWorker.register('./sw.js');
             console.log('Service Worker 注册成功，范围:', registration.scope);
 
-            // 【【【核心修改就在这里！】】】
-            // 主动请求通知权限。这行代码会触发 iOS 弹出权限请求窗口。
-            console.log('正在主动请求通知权限...');
+            // 请求通知权限
             const permission = await Notification.requestPermission();
-
             if (permission === 'granted') {
                 console.log('通知权限已获取。');
-                // 只有在获得通知权限后，才继续尝试注册后台同步
+                // 尝试注册周期性后台同步
                 await registerPeriodicSync(registration);
             } else {
-                console.warn('用户拒绝或忽略了通知权限。');
-                // 即使用户拒绝了通知，应用的其他部分也应该能正常工作
+                console.warn('用户拒绝了通知权限。');
             }
 
         } catch (error) {
-            console.error('Service Worker 或权限请求失败:', error);
+            console.error('Service Worker 注册失败:', error);
         }
     }
 }
-// ▲▲▲ 替换结束 ▲▲▲
 
 
 
@@ -34320,6 +34342,8 @@ document.getElementById('regenerate-char-usage-btn').addEventListener('click', h
 <audio id="char-audio-player" preload="auto"></audio>
 </body>
 </html>
+
+
 
 
 
