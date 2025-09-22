@@ -17695,45 +17695,9 @@ async function deleteTrack(index) { if (index < 0 || index >= musicState.playlis
                 
                 // ▲▲▲ 新函数粘贴结束 ▲▲▲
         
-// 【【【全新的、正确的代码】】】
-async function startBackgroundSimulation() {
-    if (!('serviceWorker' in navigator)) {
-        alert("此浏览器不支持后台功能。");
-        return;
-    }
 
-    const registration = await navigator.serviceWorker.ready;
-
-    // 检查浏览器是否支持 PeriodicSyncManager
-    if ('periodicSync' in registration) {
-        try {
-            // 请求权限
-            const status = await navigator.permissions.query({name: 'periodic-background-sync'});
-            if (status.state === 'granted') {
-                // 注册一个名为 'run-simulation-tick' 的周期性任务
-                const intervalMinutes = (state.globalSettings.backgroundActivityInterval || 60) / 60;
-                await registration.periodicSync.register('run-simulation-tick', {
-                    minInterval: intervalMinutes * 60 * 1000, // 最小间隔，单位是毫秒
-                });
-                console.log("周期性后台同步任务已注册！最小间隔:", intervalMinutes, "分钟");
-            } else {
-                console.log("用户未授予周期性后台同步权限。");
-            }
-        } catch (error) {
-            console.error("注册周期性后台同步失败:", error);
-        }
-    } else {
-        alert("您的浏览器不支持周期性后台同步功能，后台行动可能无法按预期工作。");
-    }
-}
         
-        function stopBackgroundSimulation() {
-            if (simulationIntervalId) {
-                clearInterval(simulationIntervalId);
-                simulationIntervalId = null;
-            }
-        }
-        // ▲▲▲ 粘贴结束 ▲▲▲
+
         
 
         
@@ -30062,14 +30026,7 @@ function setupCharPlayerControls() {
                 // 4. 初始化函数 init()
                 // ===================================================================
                 async function init() {
-    if ('serviceWorker' in navigator) {
-        try {
-            await navigator.serviceWorker.register('./sw.js');
-            console.log('Service Worker 注册成功');
-        } catch (error) {
-            console.error('Service Worker 注册失败:', error);
-        }
-    }
+
 
 setupCharPlayerControls();
     // ▼▼▼ 【核心修复】将内部函数暴露到全局，以便HTML中的 onclick 可以调用它们 ▼▼▼
@@ -30145,7 +30102,7 @@ window.switchToCharHomeScreen = switchToCharHomeScreen;
                     }
         
                     updateClock();
-                    setInterval(updateClock, 1000 * 30);
+                    
                     applyGlobalWallpaper();
                     initBatteryManager(); 
         
@@ -34070,7 +34027,46 @@ document.getElementById('regenerate-char-amap-btn').addEventListener('click', ha
 document.getElementById('regenerate-char-usage-btn').addEventListener('click', handleGenerateAppUsage);
         document.getElementById('regenerate-char-music-btn').addEventListener('click', handleGenerateSimulatedMusic);
         document.getElementById('close-char-music-player-btn').addEventListener('click', closeCharMusicPlayer);
+// ... init() 函数的其他代码 ...
 
+        // ▼▼▼ 【全新】这是注册 Service Worker 并启动后台同步的核心代码 ▼▼▼
+        async function registerServiceWorkerAndSync() {
+            // 检查浏览器是否支持 Service Worker 和后台同步
+            if ('serviceWorker' in navigator && 'PeriodicSyncManager' in window) {
+                try {
+                    // 1. 注册我们创建的 sw.js 文件
+                    const registration = await navigator.serviceWorker.register('sw.js');
+                    console.log('Service Worker 注册成功:', registration);
+
+                    // 2. 请求后台同步的权限
+                    const status = await navigator.permissions.query({name: 'periodic-background-sync'});
+                    if (status.state === 'granted') {
+                        // 3. 如果已获取权限，就注册一个名为 'run-background-simulation' 的同步任务
+                        await registration.periodicSync.register('run-background-simulation', {
+                            // 设置最小间隔为 4 小时 (浏览器会根据情况调整，但不会比这个更频繁)
+                            minInterval: 4 * 60 * 60 * 1000, 
+                        });
+                        console.log('后台周期性同步任务已成功注册！');
+                    } else {
+                        console.warn('后台周期性同步权限未被授予。PWA将无法在后台运行。');
+                    }
+                } catch (error) {
+                    console.error('Service Worker 或后台同步注册失败:', error);
+                }
+            } else {
+                console.warn('您的浏览器不支持 Service Worker 或后台周期性同步，PWA将无法在后台运行。');
+            }
+        }
+        
+        // 在应用初始化时调用这个新函数
+        registerServiceWorkerAndSync();
+        // ▲▲▲ 新增代码粘贴结束 ▲▲▲
+
+        showScreen('home-screen');
+    }
+
+    init();
+});
 
                     showScreen('home-screen');
                 }
