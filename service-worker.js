@@ -112,5 +112,26 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
+// sw.js - ✅ 修改后的正确代码
+self.addEventListener('fetch', event => {
+    event.respondWith(
+        caches.match(event.request).then(response => {
+            if (response) {
+                return response;
+            }
+            return fetch(event.request).then(networkResponse => {
+                // ★★★ 核心修改就在这里 ★★★
+                // 在尝试缓存之前，检查请求的协议是不是 http 或 https
+                if (networkResponse && networkResponse.status === 200 && event.request.url.startsWith('http')) {
+                    let responseToCache = networkResponse.clone();
+                    caches.open('my-cache-name').then(cache => {
+                        cache.put(event.request, responseToCache);
+                    });
+                }
+                return networkResponse;
+            });
+        })
+    );
+});
 
 
