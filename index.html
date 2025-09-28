@@ -253,16 +253,7 @@
         #chat-interface-screen { background-size: cover; background-position: center; position: relative; }
         #selection-cancel-btn, #selection-delete-btn { font-size: 16px; color: var(--accent-color); cursor: pointer; padding: 5px; }
         #selection-delete-btn { color: #ff3b30; }
-        /* 4. 让输入框区域高度固定，同样不再使用绝对定位 */
-#chat-interface-screen #chat-input-area {
-    flex-shrink: 0;   /* 防止输入框被压缩 */
-    position: relative; /* 恢复其正常的文档流定位 */
-    z-index: 10;
-    /* 核心：保留对iPhone底部“小黑条”的安全距离适配 */
-    padding-bottom: calc(8px + env(safe-area-inset-bottom));
-}
-
-/* ▲▲▲ 替换结束 ▲▲▲ */
+        
         /* ▼▼▼ 用这块代码替换掉你原来的 #chat-messages 样式 ▼▼▼ */
         #chat-messages {
             flex-grow: 1;
@@ -5060,7 +5051,60 @@
           这样可以完美实现内容在透明顶/底部之下滚动的美观效果，且不会再出现宽度计算错误。
         */
         
-
+        /* ▼▼▼ 请用这一整块全新的代码，替换所有旧的聊天界面布局CSS ▼▼▼ */
+        
+        /* 1. 确保聊天界面容器是可靠的定位锚点 */
+        #chat-interface-screen {
+            position: relative !important;
+            height: 100%;
+            width: 100%;
+            overflow: hidden; /* 防止任何意外溢出 */
+        }
+        
+        /* 2. 强制【头部】绝对定位，并“钉”在屏幕顶部 */
+        #chat-interface-screen > .header {
+            position: relative !important;
+            top: 0;
+            left: 0;
+            right: 0; /* 使用 left/right 撑满宽度，比 width:100% 更可靠 */
+            width: auto !important; 
+            z-index: 100 !important; /* 赋予一个非常高的层级，确保它在最上层 */
+        }
+        
+        /* 3. 强制【输入框】也绝对定位，并“钉”在屏幕底部 */
+        #chat-interface-screen #chat-input-area {
+            position: relative !important;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: auto !important;
+            z-index: 100 !important;
+            /* 核心：为输入框本身添加适配“小黑条”的底部内边距 */
+            padding-bottom: calc(8px + env(safe-area-inset-bottom)); 
+        }
+        
+        /* 4. 【核心】重新定义【聊天内容区】的布局 */
+        #chat-interface-screen #chat-messages {
+            /* 让它填满整个屏幕 */
+            height: 100% !important; 
+            width: 100% !important;
+            
+            /* 允许其内容垂直滚动 */
+            overflow-y: auto !important; 
+            
+            /* 确保 padding 的计算方式正确 */
+            box-sizing: border-box !important; 
+            
+            /* 移除所有可能干扰布局的 margin */
+            margin-top: 0 !important; 
+        
+            /* 关键：使用内边距为顶部的“头部”和底部的“输入框”留出空间 */
+            /* 这样内容就会在半透明的顶/底部之下滚动，效果美观且精准 */
+           // padding-top: 150px !important;  /* 为头部预留约110px空间 */
+          //  padding-bottom: 120px !important; /* 为输入框预留约120px空间 */
+        }
+        
+        /* ▲▲▲ 替换结束 ▲▲▲ */
         
         /* ▲▲▲ 修复代码粘贴结束 ▲▲▲ */
         /* ▼▼▼ 【全新】“动态已删除”提示样式 ▼▼▼ */
@@ -37605,6 +37649,7 @@ document.getElementById('reset-button-order-btn').addEventListener('click', rese
 <!-- ▲▲▲ 新增HTML结束 ▲▲▲ -->
 </body>
 </html>
+
 
 
 
