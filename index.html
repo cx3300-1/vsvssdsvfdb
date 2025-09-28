@@ -5051,66 +5051,7 @@
           这样可以完美实现内容在透明顶/底部之下滚动的美观效果，且不会再出现宽度计算错误。
         */
         
-/* ▼▼▼ 【最终解决方案】请用这一整块代码，替换掉所有旧的聊天界面布局CSS ▼▼▼ */
 
-/* 1. 将聊天界面总容器改造为 Flexbox 布局 */
-#chat-interface-screen {
-    display: flex;                 /* 核心：启用 Flexbox */
-    flex-direction: column;        /* 核心：让内部元素（头、内容、输入框）垂直排列 */
-    height: 100vh;                 /* 核心：高度占满整个可视窗口，能随键盘弹出而变化 */
-    width: 100%;
-    overflow: hidden;              /* 防止意外溢出 */
-    background-color: #f0f2f5;     /* 您可以根据需要设置背景色 */
-}
-
-/* 2. 让头部区域高度固定，不再使用绝对定位 */
-#chat-interface-screen > .header {
-    flex-shrink: 0; /* 防止头部在空间不足时被压缩 */
-    position: relative; /* 恢复其正常的文档流定位 */
-    z-index: 10;      /* 保持一个较高的层级，以支持毛玻璃等效果 */
-}
-
-/* 3. 让聊天内容区占据所有剩余空间，并可以滚动 */
-#chat-interface-screen #chat-messages {
-    flex-grow: 1;      /* 核心：让内容区自动填充所有可用的剩余空间 */
-    overflow-y: auto;  /* 核心：当内容超出时，允许垂直滚动 */
-    padding: 10px 15px;/* 现在只需要简单的内边距即可 */
-    min-height: 0;     /* 一个防止flex子元素内容溢出的重要技巧 */
-}
-
-/* 4. 让输入框区域高度固定，同样不再使用绝对定位 */
-#chat-interface-screen #chat-input-area {
-    flex-shrink: 0;   /* 防止输入框被压缩 */
-    position: relative; /* 恢复其正常的文档流定位 */
-    z-index: 10;
-    /* 核心：保留对iPhone底部“小黑条”的安全距离适配 */
-    padding-bottom: calc(8px + env(safe-area-inset-bottom));
-}
-
-/* ▲▲▲ 替换结束 ▲▲▲ */
-        
-        /* 4. 【核心】重新定义【聊天内容区】的布局 */
-        #chat-interface-screen #chat-messages {
-            /* 让它填满整个屏幕 */
-            height: 100% !important; 
-            width: 100% !important;
-            
-            /* 允许其内容垂直滚动 */
-            overflow-y: auto !important; 
-            
-            /* 确保 padding 的计算方式正确 */
-            box-sizing: border-box !important; 
-            
-            /* 移除所有可能干扰布局的 margin */
-            margin-top: 0 !important; 
-        
-            /* 关键：使用内边距为顶部的“头部”和底部的“输入框”留出空间 */
-            /* 这样内容就会在半透明的顶/底部之下滚动，效果美观且精准 */
-            padding-top: 150px !important;  /* 为头部预留约110px空间 */
-            padding-bottom: 150px !important; /* 为输入框预留约120px空间 */
-        }
-        
-        /* ▲▲▲ 替换结束 ▲▲▲ */
         
         /* ▲▲▲ 修复代码粘贴结束 ▲▲▲ */
         /* ▼▼▼ 【全新】“动态已删除”提示样式 ▼▼▼ */
@@ -37655,6 +37596,7 @@ document.getElementById('reset-button-order-btn').addEventListener('click', rese
 <!-- ▲▲▲ 新增HTML结束 ▲▲▲ -->
 </body>
 </html>
+
 
 
 
