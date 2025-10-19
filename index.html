@@ -1,9 +1,8 @@
-<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
 <!-- ▼▼▼ 用这整块代码替换掉你旧的meta和icon链接 ▼▼▼ -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 
 
 <!-- 1. (核心) 为苹果设备设置主屏幕图标 -->
@@ -60,9 +59,10 @@ body {
 /* 2. 让 #phone-screen 成为新的“根”容器，撑满整个浏览器窗口 */
 /* ▼▼▼ 请用这块【最终修正版】的代码，替换掉你现有的 #phone-screen 样式 ▼▼▼ */
 #phone-screen {
-
+    width: 100%;
     height: 100vh;
     position: relative;
+    top: 0px; /* 向上移动20px，避免状态栏内容露出 */
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -83,7 +83,7 @@ body {
 
 /* 5. 【核心】让聊天输入框和底部导航栏自动适应iPhone底部的"小黑条"安全区 */
 #chat-input-area {
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
 }
 
 #chat-list-bottom-nav {
@@ -186,7 +186,7 @@ body {
     position: relative;
     z-index: 15;
     flex-shrink: 0;
-    padding: 15px 20px;
+    padding: 15px 15px;
     padding-top: 45px;
     background-color: rgba(247, 247, 247, 0.8);
     backdrop-filter: blur(10px);
@@ -204,8 +204,32 @@ body {
     /* ▲▲▲ 新增结束 ▲▲▲ */
 }
 
-        .header .header-actions { display: flex; align-items: center; gap: 15px; }
-        .header .back-btn, .header .action-btn { font-size: 24px; cursor: pointer; width: 30px; text-align: center; color: #000000; display: flex; align-items: center; justify-content: center; }
+        .header .header-actions { display: flex; align-items: center; gap: 5px; }
+        /* ▼▼▼ 【触摸区域优化版】替换旧的 .header .back-btn, .header .action-btn 样式 ▼▼▼ */
+.header .back-btn, .header .action-btn {
+    font-size: 24px; /* 保持图标大小不变 */
+    cursor: pointer;
+    color: var(--accent-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* --- 核心修改从这里开始 --- */
+    width: 40px;              /* 1. 将按钮宽度从30px增加到40px */
+    height: 40px;             /* 2. 将按钮高度从30px增加到40px */
+    border-radius: 50%;       /* 3. (可选但推荐) 让按钮变成圆形，更美观 */
+    transition: background-color 0.2s; /* 4. 为悬停效果添加平滑动画 */
+}
+
+/* 【新增】为按钮添加悬停/点击时的背景色，给用户明确的反馈 */
+.header .back-btn:hover, .header .action-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05); /* 鼠标放上去时给一个淡淡的背景 */
+}
+#phone-screen.dark-mode .header .back-btn:hover,
+#phone-screen.dark-mode .header .action-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1); /* 夜间模式下的悬停颜色 */
+}
+/* ▲▲▲ 替换结束 ▲▲▲ */
 
 .header .action-btn {
     font-size: 16px; /* 专门为“上传”、“+”等文字按钮缩小字号 */
@@ -5640,7 +5664,7 @@ input:checked + .toggle-slider:before {
 /* 回忆页面整体粉色背景 */
 #memories-view {
     background: linear-gradient(135deg, #ffeef4, #fff0f5, #fdf2f8);
- 
+    min-height: 100vh;
 }
 
 /* 主选择界面容器 */
@@ -7949,6 +7973,57 @@ body.album-detail-active .love-bottom-nav {
     .love-space-content {
         gap: 10px; /* 手机端整体间距更小 */
         padding: 5px 10px 90px 10px; /* 手机端内边距减少 */
+    }
+    
+    /* 手机端输入框键盘优化 */
+    #chat-input-area {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 1000 !important;
+        transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+        transform: translateY(0) !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* 键盘弹起时的样式 */
+    #chat-input-area.keyboard-visible {
+        transform: translateY(0) !important;
+        transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+    }
+    
+    /* 聊天界面容器适配 */
+    #chat-interface {
+        padding-bottom: 130px !important; /* 为输入框留出空间 */
+        transition: padding-bottom 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+    }
+    
+    #chat-interface.keyboard-visible {
+        padding-bottom: 130px !important; /* 键盘弹起时保持固定底部空间 */
+    }
+    
+    /* 聊天消息区域适配 */
+    #chat-messages {
+        transition: height 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+    }
+}
+
+/* 桌面端输入框位置重置 */
+@media (min-width: 769px) {
+    #chat-input-area {
+        position: relative !important;
+        bottom: auto !important;
+        left: auto !important;
+        right: auto !important;
+        z-index: auto !important;
+        transform: none !important;
+        width: auto !important;
+    }
+    
+    #chat-interface {
+        padding-bottom: 0 !important;
     }
 }
 
@@ -58890,6 +58965,92 @@ if (typeof showCustomConfirm !== 'undefined') {
     window.showCustomConfirm = showCustomConfirm;
 }
 
+// 手机端键盘处理功能
+function initMobileKeyboardHandling() {
+    if (!window.matchMedia('(max-width: 768px)').matches) {
+        return; // 只在手机端生效
+    }
+
+    const chatInput = document.getElementById('chat-input');
+    const chatInputArea = document.getElementById('chat-input-area');
+    const chatInterface = document.getElementById('chat-interface');
+    const chatMessages = document.getElementById('chat-messages');
+    
+    if (!chatInput || !chatInputArea || !chatInterface) {
+        console.log('键盘处理：缺少必要DOM元素');
+        return;
+    }
+
+    let initialViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    let isKeyboardVisible = false;
+
+    // 监听视口高度变化（用于检测键盘）
+    function handleViewportChange() {
+        const currentHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        const threshold = initialViewportHeight * 0.75; // 当高度减少超过25%时认为键盘弹起
+        
+        if (currentHeight < threshold && !isKeyboardVisible) {
+            // 键盘弹起
+            console.log('键盘弹起');
+            isKeyboardVisible = true;
+            chatInputArea.classList.add('keyboard-visible');
+            chatInterface.classList.add('keyboard-visible');
+            
+            // 滚动到输入框
+            setTimeout(() => {
+                if (chatMessages) {
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            }, 100);
+            
+        } else if (currentHeight >= threshold && isKeyboardVisible) {
+            // 键盘收起
+            console.log('键盘收起');
+            isKeyboardVisible = false;
+            chatInputArea.classList.remove('keyboard-visible');
+            chatInterface.classList.remove('keyboard-visible');
+        }
+    }
+
+    // 输入框获得焦点
+    chatInput.addEventListener('focus', () => {
+        console.log('输入框获得焦点');
+        setTimeout(handleViewportChange, 100);
+    });
+
+    // 输入框失去焦点
+    chatInput.addEventListener('blur', () => {
+        console.log('输入框失去焦点');
+        setTimeout(() => {
+            if (document.activeElement !== chatInput) {
+                isKeyboardVisible = false;
+                chatInputArea.classList.remove('keyboard-visible');
+                chatInterface.classList.remove('keyboard-visible');
+            }
+        }, 100);
+    });
+
+    // 点击空白区域收起键盘
+    document.addEventListener('touchstart', (e) => {
+        if (isKeyboardVisible && !chatInputArea.contains(e.target)) {
+            chatInput.blur();
+        }
+    });
+
+    // 监听visualViewport变化（现代浏览器）
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', handleViewportChange);
+    } else {
+        // 降级方案：监听window resize
+        window.addEventListener('resize', handleViewportChange);
+    }
+
+    console.log('手机端键盘处理初始化完成');
+}
+
+// 页面加载完成后初始化键盘处理
+document.addEventListener('DOMContentLoaded', initMobileKeyboardHandling);
+
 // 页面加载完成后初始化恋爱空间
 document.addEventListener('DOMContentLoaded', function() {
     // 确保DOM完全加载后再初始化头像和壁纸
@@ -67930,42 +68091,3 @@ window.testSpeechModal = function() {
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
